@@ -1,0 +1,19 @@
+Comandos uteis de git
+
+- git log
+  Exibe listagem de commits
+
+- git status
+  Ve status do seu repositorio local (se existe alguma alteracao ou arquivos adicionados)
+
+- git pull
+  Atualiza repositorio local com o remoto (Github)
+
+- git add .
+  Adiciona TODOS os arquivos para commitar (cuidado pois nem sempre queremos adicionar todos)
+
+- git commit -m "Mensagem"
+  Gera um novo commit para subir para o repositorio remoto
+
+- git push
+  Sobe um novo commit para repositorio remoto (Github)
