@@ -1,4 +1,6 @@
 Comandos uteis de git
+- Configurando o git em um diretorio local.
+  git clone "endereço" 
 
 - git log
   Exibe listagem de commits
@@ -17,3 +19,11 @@ Comandos uteis de git
 
 - git push
   Sobe um novo commit para repositorio remoto (Github)
+
+###################### outros comandos ############################
+- git reset HEAD . ou git reset HEAD "arquivo" 
+ desmarca o arquivo da area de commits. 
+
+- git checkout "arquivo" 
+ Descarta a versão do seu arquivo em seu diretorio, e baixa a versão
+ antiga do arquivo no git. 
