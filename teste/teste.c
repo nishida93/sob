@@ -20,7 +20,10 @@ static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
 
 int main(){
    int ret, fd;
-   char stringToSend[BUFFER_LENGTH];
+   //char stringToSend[BUFFER_LENGTH];
+   char operacao[1];
+   char dados[BUFFER_LENGTH];
+   //char text[256];
    printf("Starting device test code example...\n");
    fd = open("/dev/ebbchar", O_RDWR);             // Open the device with read/write access
    if (fd < 0){
@@ -28,9 +31,27 @@ int main(){
       return errno;
    }
    printf("Type in a short string to send to the kernel module:\n");
-   scanf("%[^\n]%*c", stringToSend);                // Read in a string (with spaces)
-   printf("Writing message to the device [%s].\n", stringToSend);
-   ret = write(fd, stringToSend, strlen(stringToSend)); // Send the string to the LKM
+   scanf("%[^\n]%*c", operacao);
+   scanf("%[^\n]%*c", dados);
+   //gets(text);
+   //scanf("%[^\n]%*c", stringToSend);                // Read in a string (with spaces)
+   printf("Writing message to the device [%s].\n", dados);
+   
+   if(operacao[0] == 'c'){  // Cifrar
+     printf("Opcao 1\n\n");
+     ret = write(fd, dados, 1); // Manda pro modulo qual opcao o usuario escolheu
+   }
+   if(operacao[0] == 'd'){ // Decifrar
+     printf("Opcao 2\n\n");
+     ret = write(fd, dados, 2); // Manda pro modulo qual opcao o usuario escolheu
+   }
+   if(operacao[0] == 'h'){ // Hash
+     printf("Opcao 3\n\n");
+     ret = write(fd, dados, 3); // Manda pro modulo qual opcao o usuario escolheu
+   }
+   
+   /*
+   //ret = write(fd, dados, strlen(dados)); // Send the string to the LKM
    if (ret < 0){
       perror("Failed to write the message to the device.");
       return errno;
@@ -38,13 +59,14 @@ int main(){
 
    printf("Press ENTER to read back from the device...\n");
    getchar();
-
+   */
    printf("Reading from the device...\n");
    ret = read(fd, receive, BUFFER_LENGTH);        // Read the response from the LKM
+   /*
    if (ret < 0){
       perror("Failed to read the message from the device.");
       return errno;
-   }
+   }*/
    printf("The received message is: [%s]\n", receive);
    printf("End of the program\n");
    return 0;

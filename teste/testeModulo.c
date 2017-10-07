@@ -117,8 +117,9 @@ static int dev_open(struct inode *inodep, struct file *filep){
  *  @param buffer The pointer to the buffer to which this function writes the data
  *  @param len The length of the b
  *  @param offset The offset if required
+     len virou opcao
  */
-static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
+static ssize_t dev_read(struct file *filep, char *buffer, size_t opcao, loff_t *offset){
    int error_count = 0;
    // copy_to_user has the format ( * to, *from, size) and returns 0 on success
    error_count = copy_to_user(buffer, message, size_of_message);
@@ -140,26 +141,26 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
  *  @param buffer The buffer to that contains the string to write to the device
  *  @param len The length of the array of data that is being passed in the const char buffer
  *  @param offset The offset if required
+     len virou opcao
  */
-static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
-   sprintf(message, "%s(%zu letters Aqui eh a resposta!)", buffer, len);   // appending received string with its length
+static ssize_t dev_write(struct file *filep, const char *buffer, size_t opcao, loff_t *offset){
+   sprintf(message, "%s(%zu lettersAqui eh a resposta!)", buffer, opcao);   // appending received string with its length
    size_of_message = strlen(message);                 // store the length of the stored message
-   printk(KERN_INFO "EBBChar: Received %zu characters from the user\n", len);
-
-	  if(strcmp(buffer, "c") == 0) {						// Estou mexendo aqui
-	    sprintf(message, "\nString que sera encriptada\n\n");
-	  }
-
-	  if(strcmp(buffer, "d") == 0) {
-	    sprintf(message, "\n\nString que sera decriptada\n\n");
-	  }
-
-	  if(strcmp(buffer, "h") == 0) {
-	    sprintf(message, "\n\nHash gerado a partir da string\n\n");
-	}
+   printk(KERN_INFO "EBBChar: Received %zu characters from the user\n", opcao);
 
 
-   return len;
+     if(opcao == 1){ // se for igual a 1, o usuario escolheu a opcao Cifrar
+          sprintf(message, "\n\nOP1\n\n");
+     }
+     if(opcao == 2){ // se for igual a 2, o usuario escolheu a opcao Decodificar
+          sprintf(message, "\n\nOP2\n\n");
+     }
+     if(opcao == 3){ // se for igual a 3, o usuario escolheu a opcao Hash
+          sprintf(message, "\n\nOP3\n\n");
+     }
+     
+
+   return opcao;
 }
 
 /** @brief The device release function that is called whenever the device is closed/released by
