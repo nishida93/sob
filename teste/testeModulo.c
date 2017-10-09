@@ -10,6 +10,13 @@
  * @see http://www.derekmolloy.ie/ for a full description and follow-up descriptions.
  */
 
+/*
+	Verificar essas bibliotecas
+	linux/string
+	linux/crypto
+*/
+
+
 #include <linux/init.h>           // Macros used to mark up functions e.g. __init __exit
 #include <linux/module.h>         // Core header for loading LKMs into the kernel
 #include <linux/device.h>         // Header to support the kernel Driver Model
@@ -18,6 +25,12 @@
 #include <asm/uaccess.h>          // Required for the copy to user function
 #define  DEVICE_NAME "ebbchar"    ///< The device will appear at /dev/ebbchar using this value
 #define  CLASS_NAME  "ebb"        ///< The device class -- this is a character device driver
+
+
+static char *key = "chave";
+
+module_param(key, charp, 0000);
+MODULE_PARM_DESC(key, "A character string");
 
 MODULE_LICENSE("GPL");            ///< The license type -- this affects available functionality
 MODULE_AUTHOR("Derek Molloy");    ///< The author -- visible when you use modinfo
@@ -150,7 +163,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t opcao, l
 
 
      if(opcao == 1){ // se for igual a 1, o usuario escolheu a opcao Cifrar
-          sprintf(message, "\n\nOP1\n\n");
+          sprintf(message, "\n\nOP1, chave: %s\n\n", key);
      }
      if(opcao == 2){ // se for igual a 2, o usuario escolheu a opcao Decodificar
           sprintf(message, "\n\nOP2\n\n");
