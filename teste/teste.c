@@ -18,7 +18,7 @@
 #define BUFFER_LENGTH 256               ///< The buffer length (crude but fine)
 static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
 
-int main(){
+int main(int argc, char **argv){
    int ret, fd;
    //char stringToSend[BUFFER_LENGTH];
    char operacao[1];
@@ -30,22 +30,23 @@ int main(){
       perror("Failed to open the device...");
       return errno;
    }
-   printf("Type in a short string to send to the kernel module:\n");
-   scanf("%[^\n]%*c", operacao);
-   scanf("%[^\n]%*c", dados);
+
+   strcpy(dados, argv[2]);
+   
+   //scanf("%[^\n]%*c", operacao);
    //gets(text);
    //scanf("%[^\n]%*c", stringToSend);                // Read in a string (with spaces)
    printf("Writing message to the device [%s].\n", dados);
    
-   if(operacao[0] == 'c'){  // Cifrar
+   if(strcmp(argv[1], "c") == 0){  // Cifrar
      printf("Opcao 1\n\n");
      ret = write(fd, dados, 1); // Manda pro modulo qual opcao o usuario escolheu
    }
-   if(operacao[0] == 'd'){ // Decifrar
+   if(strcmp(argv[1], "d") == 0){ // Decifrar
      printf("Opcao 2\n\n");
      ret = write(fd, dados, 2); // Manda pro modulo qual opcao o usuario escolheu
    }
-   if(operacao[0] == 'h'){ // Hash
+   if(strcmp(argv[1], "h") == 0){ // Hash
      printf("Opcao 3\n\n");
      ret = write(fd, dados, 3); // Manda pro modulo qual opcao o usuario escolheu
    }
