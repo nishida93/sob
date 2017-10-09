@@ -1,6 +1,6 @@
 Para poder executar, seguir a seguinte lista:
 	1 - Dar "make" para compilar o Makefile
-	2 - Dar "sudo insmod testeModulo.ko" para execular o modulo
+	2 - Dar "sudo insmod testeModulo.ko key="SecretKey" " para execular o modulo
 	3 - Dar "gcc teste.c -o teste" para compilar o arquivo teste.c
 	4 - Dar "sudo ./teste" para executar o programa
 	5 - Dar "sudo rmmod testeModulo" para acabar de executar o modulo, para 		dar make novamente, fazer isso toda vez que modificar o codigo.
