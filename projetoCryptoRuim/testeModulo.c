@@ -266,7 +266,7 @@ struct skcipher_def sk;
     char *scratchpad = NULL;
     unsigned char keyLocal[32];
     //unsigned int *resultado = NULL;
-    char retorno[16];
+    char retorno2[16];
     int ret = -EFAULT;
     int i = 0;
 
@@ -320,37 +320,24 @@ struct skcipher_def sk;
     skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL);
     init_completion(&sk.result.completion);
 
-    /* encrypt data */
+    /* Dencrypt data */
     ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
     if (ret)
         goto out;
 
     pr_info("Dencryption triggered successfully\n");
     printk(KERN_INFO "BufferDepois = %x \n", buffer);
-    //  printk(KERN_INFO "BufferDepois = %s \n", buffer);
-    
-    /*for(i = 0; i< strlen(buffer); i++){
-    	printk(KERN_INFO "BufferDepois = %x \n", buffer[i]);	
-    }*/
+  
     printk(KERN_INFO "Decriptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
-    //printk(KERN_INFO "Criptar = %s \n", sk.sg);
-    
-    //copy_from_user(resultado, sk.sg, 32);
-    
-    //resultado[2] = sk.sg;
-    /*
-    for(i = 0; i < 32 ; i++){
-    	printk(KERN_INFO "Criptar = %x \n", resultado[i]); // RESULTADO DO CRYPTO
-    }*/
     
     
     pr_info("Encryption triggered successfully\n");
-    printk(KERN_INFO "Decriptar = %x \n", retorno);
-    sg_copy_to_buffer(&sk.sg, 1, &retorno, 16);
-    for(i = 0; i < 8; i++)
-	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno[i]);
+    sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
+    printk(KERN_INFO "Retorno 2 = %x \n", retorno2);
+    for(i = 0; i < 16; i++)
+	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
 	
-	return retorno;
+	return retorno2;
 
 out:
     if (skcipher)
@@ -418,6 +405,11 @@ static int criptar(char *buffer, size_t len){
 	
     sk.tfm = skcipher;
     sk.req = req;
+    
+    
+    for(i = 0; i < 16; i++)
+	printk(KERN_INFO "%02x\n", (unsigned char)scratchpad[i]);
+    
     /* We encrypt one block */
     sg_init_one(&sk.sg, scratchpad, 16);
     skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL);
@@ -430,27 +422,14 @@ static int criptar(char *buffer, size_t len){
 
     pr_info("Encryption triggered successfully\n");
     printk(KERN_INFO "BufferDepois = %x \n", buffer);
-    //  printk(KERN_INFO "BufferDepois = %s \n", buffer);
-    
-    /*for(i = 0; i< strlen(buffer); i++){
-    	printk(KERN_INFO "BufferDepois = %x \n", buffer[i]);	
-    }*/
     printk(KERN_INFO "Criptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
-    //printk(KERN_INFO "Criptar = %s \n", sk.sg);
-    
-    //copy_from_user(resultado, sk.sg, 32);
-    
-    //resultado[2] = sk.sg;
-    /*
-    for(i = 0; i < 32 ; i++){
-    	printk(KERN_INFO "Criptar = %x \n", resultado[i]); // RESULTADO DO CRYPTO
-    }*/
+   
     
     
     pr_info("Encryption triggered successfully\n");
-    printk(KERN_INFO "Criptar = %x \n", retorno);
     sg_copy_to_buffer(&sk.sg, 1, &retorno, 16);
-    for(i = 0; i < 8; i++)
+    printk(KERN_INFO "Retorno = %x \n", retorno);
+    for(i = 0; i < 16; i++)
 	printk(KERN_INFO "Criptar: %02x\n", (unsigned char)retorno[i]);
 	
 	return retorno;

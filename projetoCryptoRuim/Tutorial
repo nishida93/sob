@@ -1,0 +1,20 @@
+Para poder executar, seguir a seguinte lista:
+	1 - Dar "make" para compilar o Makefile
+	2 - Dar "sudo insmod testeModulo.ko key="teste" " para execular o modulo
+	3 - Dar "gcc teste.c -o teste" para compilar o arquivo teste.c
+	4 - Dar "sudo ./teste" para executar o programa
+	5 - Dar "c "texto" " (c para cifrar e d para decifrar)
+	6 - Dar "dmesg" para poder ver o que ele esta dando
+	7 - Dar "sudo rmmod testeModulo" para acabar de executar o modulo, para dar make novamente, fazer isso toda vez que modificar o codigo.
+	8 - Dar "sudo dmesg -c" para limpar o dmesg
+	
+	
+	
+	Problema:
+		O cifrar esta funcionando, o problema agora eh conseguir mandar pro decriptar as coisas certas, como ele retorna o criptar em hexa e para pegar a nova entrada eh em string, da um pequeno comflito, precisamos entender como pegar cada parte do hexa juntos.
+		
+		Entrada para decriptar:
+			d "a8 6b 90 4a 27 80 0b 41"
+		Precisamos conseguir pegar cada parte dessa para tratar como um hexa, por exemplo a8 eh soh uma "letra" mas quando recebemos com string a8 sao duas "letras", temos q dar um jeito nisso
+
+
