@@ -162,11 +162,8 @@ static unsigned int test_skcipher_encdec(struct skcipher_def *sk,
 
     if (enc)
         rc = crypto_skcipher_encrypt(sk->req);
-
-    else{
+    else
         rc = crypto_skcipher_decrypt(sk->req);
-}
-
 
     switch (rc) {
     case 0:
@@ -188,6 +185,7 @@ static unsigned int test_skcipher_encdec(struct skcipher_def *sk,
 
     return rc;
 }
+
 
 /** @brief This function is called whenever device is being read from user space i.e. data is
  *  being sent from the device to the user. In this case is uses the copy_to_user() function to
@@ -237,7 +235,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	
      if(kernelBuffer[0] == 'c'){ // se for igual a 1, o usuario escolheu a opcao Cifrar
           sprintf(message, "\n\nOP1, chave: %s\n\n", key);
-          //criptar(kernelBuffer, strlen(kernelBuffer));
+          criptar(kernelBuffer, strlen(kernelBuffer));
      }
      if(kernelBuffer[0] == 'd'){ // se for igual a 2, o usuario escolheu a opcao Decodificar
           sprintf(message, "\n\nOP2\n\n");
@@ -255,10 +253,17 @@ static int criptar(char *buffer, size_t len){
     struct skcipher_def sk;
     struct crypto_skcipher *skcipher = NULL;
     struct skcipher_request *req = NULL;
-    //char *scratchpad = NULL;
+    char *scratchpad = NULL;
+    char *ivdata = NULL;
+    unsigned char keyLocal[32];
+    unsigned int *resultado = NULL;
     int ret = -EFAULT;
-    unsigned char *retorno = NULL;
-    char *retorno2 = NULL;
+    int i = 0;
+
+    //keyLocal = kmalloc(16, GFP_KERNEL);
+    //copy_from_user(keyLocal, key, strlen(key));
+    //strcpy(keyLocal, key);
+    
 
     skcipher = crypto_alloc_skcipher("ecb(aes)", 0, 0);
     if (IS_ERR(skcipher)) {
@@ -266,74 +271,75 @@ static int criptar(char *buffer, size_t len){
         return PTR_ERR(skcipher);
     }
 
-    req = skcipher_request_alloc(skcipher, GFP_KERNEL);
+    req = skcipher_request_alloc(skcipher, GFP_KERNEL); 
     if (!req) {
         pr_info("could not allocate skcipher request\n");
         ret = -ENOMEM;
         goto out;
     }
 
-    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,test_skcipher_cb,&sk.result);
+    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, test_skcipher_cb, &sk.result);
 
-    //get_random_bytes(&key, 32);
-    if (crypto_skcipher_setkey(skcipher, key, strlen(key))) {
+
+    //printk(KERN_INFO "Key Local = %s \n", keyLocal);
+    
+     /* AES 256 with random key */
+    get_random_bytes(&keyLocal, 32);
+    strcpy(keyLocal, key);
+    printk(KERN_INFO "Key Local = %s \n", keyLocal);
+    
+    if (crypto_skcipher_setkey(skcipher, keyLocal, 32)) {
         pr_info("key could not be set\n");
         ret = -EAGAIN;
         goto out;
     }
-/*
+   
+    /* Input data will be random */
     scratchpad = kmalloc(16, GFP_KERNEL);
     if (!scratchpad) {
         pr_info("could not allocate scratchpad\n");
         goto out;
     }
-
-    get_random_bytes(scratchpad, 16);
-
-    printk(KERN_INFO "%x\n", scratchpad);*/
-
+    strcpy(scratchpad, buffer);
+	
     sk.tfm = skcipher;
     sk.req = req;
-
     /* We encrypt one block */
-    sg_init_one(&sk.sg, buffer, strlen(buffer)); // TO-DO: tratar buffer menor ou maior que 16 bytes
-    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL); 
-    init_completion(&sk.result.completion);
-
-    /* encrypt data */
-    ret = test_skcipher_encdec(&sk, 1);
-    if (ret)
-        goto out;
-
-    pr_info("Encryption triggered successfully\n");
-    sg_copy_to_buffer(&sk.sg, 1, &retorno, strlen(retorno));
-    printk(KERN_INFO "Cripto1: %x\n", retorno);
-    printk(KERN_INFO "Cripto1: %x\n", sk.result);
-
-    /* We decrypt one block */
-    sg_init_one(&sk.sg, &retorno, 16);
+    sg_init_one(&sk.sg, scratchpad, 16);
     skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL);
     init_completion(&sk.result.completion);
 
-     /* encrypt data */
-    ret = test_skcipher_encdec(&sk, 0);
+    /* encrypt data */
+    ret = test_skcipher_encdec(&sk, 1); // 1 para criptar e 0 para decriptar
     if (ret)
         goto out;
 
     pr_info("Encryption triggered successfully\n");
-    sg_copy_to_buffer(&sk.sg, 1, &retorno2, strlen(retorno2));
-    printk(KERN_INFO "Decripto2: %x\n", retorno2);
-    printk(KERN_INFO "Decripto1: %x\n", sk.result);
+    printk(KERN_INFO "BufferDepois = %x \n", buffer);
+    
+    /*for(i = 0; i< strlen(buffer); i++){
+    	printk(KERN_INFO "BufferDepois = %x \n", buffer[i]);	
+    }*/
+    printk(KERN_INFO "Criptar = %x \n", sk.sg); // RESULTADO DO CRYPTO
+    
+    //copy_from_user(resultado, sk.sg, 32);
+    
+    //resultado[2] = sk.sg;
+    sg_copy_to_buffer(&sk.sg, 1, &resultado, strlen(resultado));
+    
+    for(i = 0; i < 32 ; i++){
+    	printk(KERN_INFO "Criptar = %x \n", resultado[i]); // RESULTADO DO CRYPTO
+    }
+    
 
 out:
     if (skcipher)
         crypto_free_skcipher(skcipher);
     if (req)
         skcipher_request_free(req);
-
-
+    if (scratchpad)
+        kfree(scratchpad);
     return ret;
-
 }
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
