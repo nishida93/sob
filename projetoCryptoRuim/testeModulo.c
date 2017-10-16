@@ -224,23 +224,28 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
  */
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
      char kernelBuffer[len];
-     //copy_from_user(kernelBuffer, buffer, len);
-     strcpy(kernelBuffer, buffer[2]);
-   sprintf(message, "%s(%zu lettersAqui eh a resposta!)", kernelBuffer, len);   // appending received string with its length
+     copy_from_user(kernelBuffer, buffer, len);
+     //strcpy(kernelBuffer, buffer[2]);
+   sprintf(message, "%s(%zu lettersAqui eh a resposta!)", buffer, len);   // appending received string with its length
    size_of_message = strlen(message);                 // store the length of the stored message
    printk(KERN_INFO "EBBChar: Received %zu characters from the user\n", len);
 
-     if(buffer[0] == 'c'){ // se for igual a 1, o usuario escolheu a opcao Cifrar
+	printk(KERN_INFO "kernelBuff = %c", kernelBuffer[0]);
+	
+	//criptar(kernelBuffer[2], strlen(kernelBuffer[2]));
+	
+	
+     if(kernelBuffer[0] == 'c'){ // se for igual a 1, o usuario escolheu a opcao Cifrar
           sprintf(message, "\n\nOP1, chave: %s\n\n", key);
-          criptar(kernelBuffer, strlen(kernelBuffer));
+          //criptar(kernelBuffer, strlen(kernelBuffer));
      }
-     if(buffer[0] == 'd'){ // se for igual a 2, o usuario escolheu a opcao Decodificar
+     if(kernelBuffer[0] == 'd'){ // se for igual a 2, o usuario escolheu a opcao Decodificar
           sprintf(message, "\n\nOP2\n\n");
      }
-     if(buffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash
+     if(kernelBuffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash
           sprintf(message, "\n\nOP3\n\n");
      }  
-       
+     
 
    return len;
 }
@@ -291,7 +296,7 @@ static int criptar(char *buffer, size_t len){
     sk.req = req;
 
     /* We encrypt one block */
-    sg_init_one(&sk.sg, buffer, 16); // TO-DO: tratar buffer menor ou maior que 16 bytes
+    sg_init_one(&sk.sg, buffer, strlen(buffer)); // TO-DO: tratar buffer menor ou maior que 16 bytes
     skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL); 
     init_completion(&sk.result.completion);
 
@@ -301,7 +306,7 @@ static int criptar(char *buffer, size_t len){
         goto out;
 
     pr_info("Encryption triggered successfully\n");
-    sg_copy_to_buffer(&sk.sg, 1, &retorno, 16);
+    sg_copy_to_buffer(&sk.sg, 1, &retorno, strlen(retorno));
     printk(KERN_INFO "Cripto1: %x\n", retorno);
     printk(KERN_INFO "Cripto1: %x\n", sk.result);
 
@@ -316,7 +321,7 @@ static int criptar(char *buffer, size_t len){
         goto out;
 
     pr_info("Encryption triggered successfully\n");
-    sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
+    sg_copy_to_buffer(&sk.sg, 1, &retorno2, strlen(retorno2));
     printk(KERN_INFO "Decripto2: %x\n", retorno2);
     printk(KERN_INFO "Decripto1: %x\n", sk.result);
 
