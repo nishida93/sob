@@ -68,6 +68,7 @@ static struct device* ebbcharDevice = NULL; ///< The device-driver device struct
 static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 static int criptar(char* buffer, size_t len);
+static int decriptar(char *buffer, size_t len);
 
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
  *  /linux/fs.h lists the callback functions that you wish to associated with your file operations
@@ -222,6 +223,8 @@ static ssize_t dev_read(struct file *filep, char *buffer, size_t len, loff_t *of
  */
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
      char kernelBuffer[len];
+     char dadosBuffer[len - 4];
+     int i = 0;
      copy_from_user(kernelBuffer, buffer, len);
      //strcpy(kernelBuffer, buffer[2]);
    sprintf(message, "%s(%zu lettersAqui eh a resposta!)", buffer, len);   // appending received string with its length
@@ -232,15 +235,23 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	
 	//criptar(kernelBuffer[2], strlen(kernelBuffer[2]));
 	
+	for(i = 0; i<(len - 4); i++){     // c "oi"
+		
+             dadosBuffer[i] = kernelBuffer[i + 3];
+	}
+	dadosBuffer[i] = '\0';
+	
+	printk(KERN_INFO "kernelBuff = %s", dadosBuffer);
+	
 	
      if(kernelBuffer[0] == 'c'){ // se for igual a 1, o usuario escolheu a opcao Cifrar
-          sprintf(message, "\n\nOP1, chave: %s\n\n", key);
-          criptar(kernelBuffer, strlen(kernelBuffer));
+          sprintf(message, "\n\nOP1, Criptografia concluida: %x\n\n", criptar(dadosBuffer, strlen(dadosBuffer)));
      }
      if(kernelBuffer[0] == 'd'){ // se for igual a 2, o usuario escolheu a opcao Decodificar
           sprintf(message, "\n\nOP2\n\n");
+          decriptar(dadosBuffer, strlen(dadosBuffer));
      }
-     if(kernelBuffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash
+     if(kernelBuffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash     c "mensagem" 
           sprintf(message, "\n\nOP3\n\n");
      }  
      
@@ -248,15 +259,14 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
    return len;
 }
 
-
-static int criptar(char *buffer, size_t len){
-    struct skcipher_def sk;
+static int decriptar(char *buffer, size_t len){
+struct skcipher_def sk;
     struct crypto_skcipher *skcipher = NULL;
     struct skcipher_request *req = NULL;
     char *scratchpad = NULL;
-    char *ivdata = NULL;
     unsigned char keyLocal[32];
-    unsigned int *resultado = NULL;
+    //unsigned int *resultado = NULL;
+    char retorno[16];
     int ret = -EFAULT;
     int i = 0;
 
@@ -264,6 +274,110 @@ static int criptar(char *buffer, size_t len){
     //copy_from_user(keyLocal, key, strlen(key));
     //strcpy(keyLocal, key);
     
+    printk(KERN_INFO "Buff = %s", buffer);
+
+    skcipher = crypto_alloc_skcipher("ecb(aes)", 0, 0);
+    if (IS_ERR(skcipher)) {
+        pr_info("could not allocate skcipher handle\n");
+        return PTR_ERR(skcipher);
+    }
+
+    req = skcipher_request_alloc(skcipher, GFP_KERNEL); 
+    if (!req) {
+        pr_info("could not allocate skcipher request\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+
+    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, test_skcipher_cb, &sk.result);
+
+
+    //printk(KERN_INFO "Key Local = %s \n", keyLocal);
+    
+     /* AES 256 with random key */
+    get_random_bytes(&keyLocal, 32);
+    strcpy(keyLocal, key);
+    printk(KERN_INFO "Key Local = %s \n", keyLocal);
+    
+    if (crypto_skcipher_setkey(skcipher, keyLocal, 32)) {
+        pr_info("key could not be set\n");
+        ret = -EAGAIN;
+        goto out;
+    }
+   
+    /* Input data will be random */
+    scratchpad = kmalloc(16, GFP_KERNEL);
+    if (!scratchpad) {
+        pr_info("could not allocate scratchpad\n");
+        goto out;
+    }
+    strcpy(scratchpad, buffer);
+	
+    sk.tfm = skcipher;
+    sk.req = req;
+    /* We encrypt one block */
+    sg_init_one(&sk.sg, scratchpad, 16);
+    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL);
+    init_completion(&sk.result.completion);
+
+    /* encrypt data */
+    ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
+    if (ret)
+        goto out;
+
+    pr_info("Dencryption triggered successfully\n");
+    printk(KERN_INFO "BufferDepois = %x \n", buffer);
+    //  printk(KERN_INFO "BufferDepois = %s \n", buffer);
+    
+    /*for(i = 0; i< strlen(buffer); i++){
+    	printk(KERN_INFO "BufferDepois = %x \n", buffer[i]);	
+    }*/
+    printk(KERN_INFO "Decriptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
+    //printk(KERN_INFO "Criptar = %s \n", sk.sg);
+    
+    //copy_from_user(resultado, sk.sg, 32);
+    
+    //resultado[2] = sk.sg;
+    /*
+    for(i = 0; i < 32 ; i++){
+    	printk(KERN_INFO "Criptar = %x \n", resultado[i]); // RESULTADO DO CRYPTO
+    }*/
+    
+    
+    pr_info("Encryption triggered successfully\n");
+    printk(KERN_INFO "Decriptar = %x \n", retorno);
+    sg_copy_to_buffer(&sk.sg, 1, &retorno, 16);
+    for(i = 0; i < 8; i++)
+	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno[i]);
+	
+	return retorno;
+
+out:
+    if (skcipher)
+        crypto_free_skcipher(skcipher);
+    if (req)
+        skcipher_request_free(req);
+    if (scratchpad)
+        kfree(scratchpad);
+    return ret;
+}
+
+static int criptar(char *buffer, size_t len){
+    struct skcipher_def sk;
+    struct crypto_skcipher *skcipher = NULL;
+    struct skcipher_request *req = NULL;
+    char *scratchpad = NULL;
+    unsigned char keyLocal[32];
+    //unsigned int *resultado = NULL;
+    char retorno[16];
+    int ret = -EFAULT;
+    int i = 0;
+
+    //keyLocal = kmalloc(16, GFP_KERNEL);
+    //copy_from_user(keyLocal, key, strlen(key));
+    //strcpy(keyLocal, key);
+    
+    printk(KERN_INFO "Buff = %s", buffer);
 
     skcipher = crypto_alloc_skcipher("ecb(aes)", 0, 0);
     if (IS_ERR(skcipher)) {
@@ -316,21 +430,30 @@ static int criptar(char *buffer, size_t len){
 
     pr_info("Encryption triggered successfully\n");
     printk(KERN_INFO "BufferDepois = %x \n", buffer);
+    //  printk(KERN_INFO "BufferDepois = %s \n", buffer);
     
     /*for(i = 0; i< strlen(buffer); i++){
     	printk(KERN_INFO "BufferDepois = %x \n", buffer[i]);	
     }*/
-    printk(KERN_INFO "Criptar = %x \n", sk.sg); // RESULTADO DO CRYPTO
+    printk(KERN_INFO "Criptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
+    //printk(KERN_INFO "Criptar = %s \n", sk.sg);
     
     //copy_from_user(resultado, sk.sg, 32);
     
     //resultado[2] = sk.sg;
-    sg_copy_to_buffer(&sk.sg, 1, &resultado, strlen(resultado));
-    
+    /*
     for(i = 0; i < 32 ; i++){
     	printk(KERN_INFO "Criptar = %x \n", resultado[i]); // RESULTADO DO CRYPTO
-    }
+    }*/
     
+    
+    pr_info("Encryption triggered successfully\n");
+    printk(KERN_INFO "Criptar = %x \n", retorno);
+    sg_copy_to_buffer(&sk.sg, 1, &retorno, 16);
+    for(i = 0; i < 8; i++)
+	printk(KERN_INFO "Criptar: %02x\n", (unsigned char)retorno[i]);
+	
+	return retorno;
 
 out:
     if (skcipher)
