@@ -1,0 +1,1 @@
+cmd_/home/luan/Desktop/CryptoBugaLinux/testeModulo.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/luan/Desktop/CryptoBugaLinux/testeModulo.ko /home/luan/Desktop/CryptoBugaLinux/testeModulo.o /home/luan/Desktop/CryptoBugaLinux/testeModulo.mod.o ;  true
