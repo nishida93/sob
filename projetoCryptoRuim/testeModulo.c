@@ -477,9 +477,9 @@ static int criptar(char *buffer, size_t len){
    
     
     
-    pr_info("Encryption triggered successfully\n");
+    pr_info("Decryption triggered successfully\n");
     sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
-    printk(KERN_INFO "Retorno = %x \n", retorno2);
+    printk(KERN_INFO "Decriptar = %s \n", retorno2);
     for(i = 0; i < 16; i++)
 	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
 	
