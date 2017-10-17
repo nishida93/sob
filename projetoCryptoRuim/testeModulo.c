@@ -244,18 +244,19 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	
 	printk(KERN_INFO "kernelBuff = %s", dadosBuffer);
 	
-	
-     if(kernelBuffer[0] == 'c'){ // se for igual a 1, o usuario escolheu a opcao Cifrar
-          sprintf(message, "\n\nOP1, Criptografia concluida: %x\n\n", criptar(dadosBuffer, strlen(dadosBuffer)));
-     }
-     if(kernelBuffer[0] == 'd'){ // se for igual a 2, o usuario escolheu a opcao Decodificar
+	printk(KERN_INFO "EBBChar: ANTES DO IF...\n");
+     if(kernelBuffer[0] == 'c') { // se for igual a 1, o usuario escolheu a opcao Cifrar
+          printk(KERN_INFO "EBBChar: CAIU NO CRYPT...\n");
+          sprintf(message, "\n\nOP1\n\n");
+	  criptar(dadosBuffer, strlen(dadosBuffer));
+     } if(kernelBuffer[0] == 'd') { // se for igual a 2, o usuario escolheu a opcao Decodificar
+          printk(KERN_INFO "EBBChar: CAIU NO DECRYPT...\n");
           sprintf(message, "\n\nOP2\n\n");
           decriptar(dadosBuffer, strlen(dadosBuffer));
-     }
-     if(kernelBuffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash     c "mensagem" 
+     } if(kernelBuffer[0] == 'h') { // se for igual a 3, o usuario escolheu a opcao Hash     c "mensagem" 
           sprintf(message, "\n\nOP3\n\n");
           calc_hash(dadosBuffer, strlen(dadosBuffer));
-     }  
+     }
      
 
    return len;
@@ -459,14 +460,15 @@ static int criptar(char *buffer, size_t len){
     printk(KERN_INFO "Retorno = %x \n", retorno);
     for(i = 0; i < 16; i++)
 	printk(KERN_INFO "Criptar: %02x\n", (unsigned char)retorno[i]);
-	
+
 	
 	 /* We encrypt one block */
+/*
     sg_init_one(&sk.sg, scratchpad, 16);
     skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, ivdata);
     init_completion(&sk.result.completion);
 
-    /* encrypt data */
+    /* encrypt data *
     ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
     if (ret)
         goto out;
@@ -481,7 +483,7 @@ static int criptar(char *buffer, size_t len){
     sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
     printk(KERN_INFO "Decriptar = %s \n", retorno2);
     for(i = 0; i < 16; i++)
-	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
+	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);*/
 	
 	return retorno;
 
