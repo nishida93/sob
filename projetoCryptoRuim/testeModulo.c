@@ -69,6 +69,7 @@ static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 static int criptar(char* buffer, size_t len);
 static int decriptar(char *buffer, size_t len);
+static int calc_hash(char *buffer, size_t len);
 
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
  *  /linux/fs.h lists the callback functions that you wish to associated with your file operations
@@ -253,11 +254,19 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
      }
      if(kernelBuffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash     c "mensagem" 
           sprintf(message, "\n\nOP3\n\n");
+          calc_hash(dadosBuffer, strlen(dadosBuffer));
      }  
      
 
    return len;
 }
+
+
+static int calc_hash(char *buffer, size_t len){
+
+}
+
+
 
 static int decriptar(char *buffer, size_t len){
 struct skcipher_def sk;
@@ -266,6 +275,107 @@ struct skcipher_def sk;
     char *scratchpad = NULL;
     unsigned char keyLocal[32];
     //unsigned int *resultado = NULL;
+    char retorno2[16];
+    char *ivdata = NULL;
+    int ret = -EFAULT;
+    int i = 0;
+
+    //keyLocal = kmalloc(16, GFP_KERNEL);
+    //copy_from_user(keyLocal, key, strlen(key));
+    //strcpy(keyLocal, key);
+    
+    printk(KERN_INFO "Buff = %s", buffer);
+
+    skcipher = crypto_alloc_skcipher("ecb(aes)", 0, 0);
+    if (IS_ERR(skcipher)) {
+        pr_info("could not allocate skcipher handle\n");
+        return PTR_ERR(skcipher);
+    }
+
+    req = skcipher_request_alloc(skcipher, GFP_KERNEL); 
+    if (!req) {
+        pr_info("could not allocate skcipher request\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+
+    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, test_skcipher_cb, &sk.result);
+
+
+    //printk(KERN_INFO "Key Local = %s \n", keyLocal);
+    
+     /* AES 256 with random key */
+    get_random_bytes(&keyLocal, 32);
+    strcpy(keyLocal, key);
+    printk(KERN_INFO "Key Local = %s \n", keyLocal);
+    
+    if (crypto_skcipher_setkey(skcipher, keyLocal, 32)) {
+        pr_info("key could not be set\n");
+        ret = -EAGAIN;
+        goto out;
+    }
+   
+   /* IV will be random */
+    ivdata = kmalloc(16, GFP_KERNEL);
+    if (!ivdata) {
+        pr_info("could not allocate ivdata\n");
+        goto out;
+    }
+    get_random_bytes(ivdata, 16);
+   
+    /* Input data will be random */
+    scratchpad = kmalloc(16, GFP_KERNEL);
+    if (!scratchpad) {
+        pr_info("could not allocate scratchpad\n");
+        goto out;
+    }
+    strcpy(scratchpad, buffer);
+	
+    sk.tfm = skcipher;
+    sk.req = req;
+    /* We encrypt one block */
+    sg_init_one(&sk.sg, scratchpad, 16);
+    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, ivdata);
+    init_completion(&sk.result.completion);
+
+    /* Dencrypt data */
+    ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
+    if (ret)
+        goto out;
+
+    pr_info("Dencryption triggered successfully\n");
+    printk(KERN_INFO "BufferDepois = %x \n", buffer);
+  
+    printk(KERN_INFO "Decriptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
+    
+    
+    pr_info("Encryption triggered successfully\n");
+    sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
+    printk(KERN_INFO "Retorno 2 = %s \n", retorno2);
+    for(i = 0; i < 16; i++)
+	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
+	
+	return retorno2;
+
+out:
+    if (skcipher)
+        crypto_free_skcipher(skcipher);
+    if (req)
+        skcipher_request_free(req);
+    if (scratchpad)
+        kfree(scratchpad);
+    return ret;
+}
+
+static int criptar(char *buffer, size_t len){
+    struct skcipher_def sk;
+    struct crypto_skcipher *skcipher = NULL;
+    struct skcipher_request *req = NULL;
+    char *scratchpad = NULL;
+    unsigned char keyLocal[32];
+    char *ivdata = NULL;
+    //unsigned int *resultado = NULL;
+    char retorno[16];
     char retorno2[16];
     int ret = -EFAULT;
     int i = 0;
@@ -305,95 +415,13 @@ struct skcipher_def sk;
         goto out;
     }
    
-    /* Input data will be random */
-    scratchpad = kmalloc(16, GFP_KERNEL);
-    if (!scratchpad) {
-        pr_info("could not allocate scratchpad\n");
+   /* IV will be random */
+    ivdata = kmalloc(16, GFP_KERNEL);
+    if (!ivdata) {
+        pr_info("could not allocate ivdata\n");
         goto out;
     }
-    strcpy(scratchpad, buffer);
-	
-    sk.tfm = skcipher;
-    sk.req = req;
-    /* We encrypt one block */
-    sg_init_one(&sk.sg, scratchpad, 16);
-    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL);
-    init_completion(&sk.result.completion);
-
-    /* Dencrypt data */
-    ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
-    if (ret)
-        goto out;
-
-    pr_info("Dencryption triggered successfully\n");
-    printk(KERN_INFO "BufferDepois = %x \n", buffer);
-  
-    printk(KERN_INFO "Decriptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
-    
-    
-    pr_info("Encryption triggered successfully\n");
-    sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
-    printk(KERN_INFO "Retorno 2 = %x \n", retorno2);
-    for(i = 0; i < 16; i++)
-	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
-	
-	return retorno2;
-
-out:
-    if (skcipher)
-        crypto_free_skcipher(skcipher);
-    if (req)
-        skcipher_request_free(req);
-    if (scratchpad)
-        kfree(scratchpad);
-    return ret;
-}
-
-static int criptar(char *buffer, size_t len){
-    struct skcipher_def sk;
-    struct crypto_skcipher *skcipher = NULL;
-    struct skcipher_request *req = NULL;
-    char *scratchpad = NULL;
-    unsigned char keyLocal[32];
-    //unsigned int *resultado = NULL;
-    char retorno[16];
-    int ret = -EFAULT;
-    int i = 0;
-
-    //keyLocal = kmalloc(16, GFP_KERNEL);
-    //copy_from_user(keyLocal, key, strlen(key));
-    //strcpy(keyLocal, key);
-    
-    printk(KERN_INFO "Buff = %s", buffer);
-
-    skcipher = crypto_alloc_skcipher("ecb(aes)", 0, 0);
-    if (IS_ERR(skcipher)) {
-        pr_info("could not allocate skcipher handle\n");
-        return PTR_ERR(skcipher);
-    }
-
-    req = skcipher_request_alloc(skcipher, GFP_KERNEL); 
-    if (!req) {
-        pr_info("could not allocate skcipher request\n");
-        ret = -ENOMEM;
-        goto out;
-    }
-
-    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG, test_skcipher_cb, &sk.result);
-
-
-    //printk(KERN_INFO "Key Local = %s \n", keyLocal);
-    
-     /* AES 256 with random key */
-    get_random_bytes(&keyLocal, 32);
-    strcpy(keyLocal, key);
-    printk(KERN_INFO "Key Local = %s \n", keyLocal);
-    
-    if (crypto_skcipher_setkey(skcipher, keyLocal, 32)) {
-        pr_info("key could not be set\n");
-        ret = -EAGAIN;
-        goto out;
-    }
+    get_random_bytes(ivdata, 16);
    
     /* Input data will be random */
     scratchpad = kmalloc(16, GFP_KERNEL);
@@ -412,7 +440,7 @@ static int criptar(char *buffer, size_t len){
     
     /* We encrypt one block */
     sg_init_one(&sk.sg, scratchpad, 16);
-    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, NULL);
+    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, ivdata);
     init_completion(&sk.result.completion);
 
     /* encrypt data */
@@ -431,6 +459,29 @@ static int criptar(char *buffer, size_t len){
     printk(KERN_INFO "Retorno = %x \n", retorno);
     for(i = 0; i < 16; i++)
 	printk(KERN_INFO "Criptar: %02x\n", (unsigned char)retorno[i]);
+	
+	
+	 /* We encrypt one block */
+    sg_init_one(&sk.sg, scratchpad, 16);
+    skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, ivdata);
+    init_completion(&sk.result.completion);
+
+    /* encrypt data */
+    ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
+    if (ret)
+        goto out;
+
+    pr_info("Encryption triggered successfully\n");
+    printk(KERN_INFO "BufferDepois = %x \n", buffer);
+    printk(KERN_INFO "Criptar = %x \n", sk.sg); // RESULTADO DO CRYPTO %.2x na hora do loop
+   
+    
+    
+    pr_info("Encryption triggered successfully\n");
+    sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
+    printk(KERN_INFO "Retorno = %x \n", retorno2);
+    for(i = 0; i < 16; i++)
+	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
 	
 	return retorno;
 
