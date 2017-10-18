@@ -24,8 +24,6 @@
 #include <linux/fs.h>             // Header for the Linux file system support
 #include <asm/uaccess.h>          // Required for the copy to user function
 
-/////////////////////////////////////
-
 #include <crypto/hash.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
@@ -41,6 +39,13 @@
 #include <crypto/scatterwalk.h>
 #include <linux/list.h>
 #include <linux/string.h>
+#include <linux/err.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/crypto.h>
+#include <linux/err.h>
+#include <linux/scatterlist.h>
 
 
 
@@ -69,7 +74,10 @@ static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
 static int criptar(char* buffer, size_t len);
 static int decriptar(char *buffer, size_t len);
-static int calc_hash(char *buffer, size_t len);
+static int __init sha1_init(char *buffer, size_t len);
+//static int calc_hash(struct crypto_shashalg *alg, const unsigned char data, unsigned int datalen);
+//static int test_hash(const unsigned char *data, unsigned int datalen);
+
 
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
  *  /linux/fs.h lists the callback functions that you wish to associated with your file operations
@@ -227,6 +235,7 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
      char dadosBuffer[len - 4];
      int i = 0;
      copy_from_user(kernelBuffer, buffer, len);
+     
      //strcpy(kernelBuffer, buffer[2]);
    sprintf(message, "%s(%zu lettersAqui eh a resposta!)", buffer, len);   // appending received string with its length
    size_of_message = strlen(message);                 // store the length of the stored message
@@ -244,29 +253,25 @@ static ssize_t dev_write(struct file *filep, const char *buffer, size_t len, lof
 	
 	printk(KERN_INFO "kernelBuff = %s", dadosBuffer);
 	
-	printk(KERN_INFO "EBBChar: ANTES DO IF...\n");
-     if(kernelBuffer[0] == 'c') { // se for igual a 1, o usuario escolheu a opcao Cifrar
-          printk(KERN_INFO "EBBChar: CAIU NO CRYPT...\n");
-          sprintf(message, "\n\nOP1\n\n");
-	  criptar(dadosBuffer, strlen(dadosBuffer));
-     } if(kernelBuffer[0] == 'd') { // se for igual a 2, o usuario escolheu a opcao Decodificar
-          printk(KERN_INFO "EBBChar: CAIU NO DECRYPT...\n");
+	
+     if(kernelBuffer[0] == 'c'){ // se for igual a 1, o usuario escolheu a opcao Cifrar
+          sprintf(message, "\n\nOP1, Criptografia concluida: %x\n\n", criptar(dadosBuffer, strlen(dadosBuffer)));
+     }
+     if(kernelBuffer[0] == 'd'){ // se for igual a 2, o usuario escolheu a opcao Decodificar
           sprintf(message, "\n\nOP2\n\n");
           decriptar(dadosBuffer, strlen(dadosBuffer));
-     } if(kernelBuffer[0] == 'h') { // se for igual a 3, o usuario escolheu a opcao Hash     c "mensagem" 
-          sprintf(message, "\n\nOP3\n\n");
-          calc_hash(dadosBuffer, strlen(dadosBuffer));
      }
+     if(kernelBuffer[0] == 'h'){ // se for igual a 3, o usuario escolheu a opcao Hash     c "mensagem" 
+          sprintf(message, "\n\nOP3\n\n");
+	  sha1_init(dadosBuffer, strlen(dadosBuffer));
+   
+//	int ret = test_hash (dadosBuffer, strlen(dadosBuffer));
+//	printk(KERN_INFO "resultado HASH = %s", ret);
+     }  
      
 
    return len;
 }
-
-
-static int calc_hash(char *buffer, size_t len){
-
-}
-
 
 
 static int decriptar(char *buffer, size_t len){
@@ -460,15 +465,14 @@ static int criptar(char *buffer, size_t len){
     printk(KERN_INFO "Retorno = %x \n", retorno);
     for(i = 0; i < 16; i++)
 	printk(KERN_INFO "Criptar: %02x\n", (unsigned char)retorno[i]);
-
+	
 	
 	 /* We encrypt one block */
-/*
     sg_init_one(&sk.sg, scratchpad, 16);
     skcipher_request_set_crypt(req, &sk.sg, &sk.sg, 16, ivdata);
     init_completion(&sk.result.completion);
 
-    /* encrypt data *
+    /* encrypt data */
     ret = test_skcipher_encdec(&sk, 0); // 1 para criptar e 0 para decriptar
     if (ret)
         goto out;
@@ -479,11 +483,11 @@ static int criptar(char *buffer, size_t len){
    
     
     
-    pr_info("Decryption triggered successfully\n");
+    pr_info("Encryption triggered successfully\n");
     sg_copy_to_buffer(&sk.sg, 1, &retorno2, 16);
-    printk(KERN_INFO "Decriptar = %s \n", retorno2);
+    printk(KERN_INFO "Retorno = %x \n", retorno2);
     for(i = 0; i < 16; i++)
-	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);*/
+	printk(KERN_INFO "Decriptar: %02x\n", (unsigned char)retorno2[i]);
 	
 	return retorno;
 
@@ -497,9 +501,57 @@ out:
     return ret;
 }
 
+
+/*
+hash######################
+*/
+
+static int __init sha1_init(char *buffer, size_t len)
+{
+    struct scatterlist sg;
+    struct crypto_hash *tfm;
+    struct hash_desc desc;
+    unsigned char output[len];
+    int i;
+
+    printk(KERN_INFO "Buff = %s", buffer);
+
+    memset(buffer, 'A', 10);
+    memset(output, 0x00, len);
+
+    tfm = crypto_alloc_hash(buffer, 0, CRYPTO_ALG_ASYNC);
+
+    desc.tfm = tfm;
+    desc.flags = 0;
+
+    sg_init_one(&sg, buffer, 10);
+    crypto_hash_init(&desc);
+
+    crypto_hash_update(&desc, &sg, 10);
+    crypto_hash_final(&desc, output);
+
+    for (i = 0; i < len; i++) {
+        printk(KERN_ERR "%d-%d\n", output[i], i);
+    }
+
+    crypto_free_hash(tfm);
+
+    return 0;
+}
+
+static void __exit sha1_exit(void)
+{
+    printk(KERN_INFO "sha1: %s\n", __FUNCTION__);
+}
+
+
+
+
+
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
  *  identify the initialization function at insertion time and the cleanup function (as
  *  listed above)
  */
 module_init(ebbchar_init);
 module_exit(ebbchar_exit);
+
