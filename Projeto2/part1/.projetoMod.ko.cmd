@@ -1,0 +1,1 @@
+cmd_/home/luan/Documents/Projeto2/part1/projetoMod.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/luan/Documents/Projeto2/part1/projetoMod.ko /home/luan/Documents/Projeto2/part1/projetoMod.o /home/luan/Documents/Projeto2/part1/projetoMod.mod.o ;  true
