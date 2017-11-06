@@ -1,1 +1,0 @@
-cmd_/home/luan/Desktop/teste/testeModulo.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/luan/Desktop/teste/testeModulo.ko /home/luan/Desktop/teste/testeModulo.o /home/luan/Desktop/teste/testeModulo.mod.o ;  true

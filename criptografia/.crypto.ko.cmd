@@ -1,1 +1,0 @@
-cmd_/home/pedro/Documents/criptografia/crypto.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/pedro/Documents/criptografia/crypto.ko /home/pedro/Documents/criptografia/crypto.o /home/pedro/Documents/criptografia/crypto.mod.o ;  true
