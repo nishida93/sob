@@ -1,1 +1,0 @@
-cmd_/home/luan/Documentos/sob/projetoCryptoRuim/testeModulo.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/luan/Documentos/sob/projetoCryptoRuim/testeModulo.ko /home/luan/Documentos/sob/projetoCryptoRuim/testeModulo.o /home/luan/Documentos/sob/projetoCryptoRuim/testeModulo.mod.o ;  true
