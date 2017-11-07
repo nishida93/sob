@@ -23,6 +23,7 @@ const struct file_operations minix_file_operations = {
 
 static int minix_setattr(struct dentry *dentry, struct iattr *attr)
 {
+		printk("FILE minix_setattr l-26\n");
 	struct inode *inode = d_inode(dentry);
 	int error;
 

@@ -8,6 +8,7 @@
 
 static int add_nondir(struct dentry *dentry, struct inode *inode)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	int err = minix_add_link(dentry, inode);
 	if (!err) {
 		d_instantiate(dentry, inode);
@@ -20,6 +21,7 @@ static int add_nondir(struct dentry *dentry, struct inode *inode)
 
 static struct dentry *minix_lookup(struct inode * dir, struct dentry *dentry, unsigned int flags)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	struct inode * inode = NULL;
 	ino_t ino;
 
@@ -38,6 +40,7 @@ static struct dentry *minix_lookup(struct inode * dir, struct dentry *dentry, un
 
 static int minix_mknod(struct inode * dir, struct dentry *dentry, umode_t mode, dev_t rdev)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	int error;
 	struct inode *inode;
 
@@ -56,6 +59,7 @@ static int minix_mknod(struct inode * dir, struct dentry *dentry, umode_t mode, 
 
 static int minix_tmpfile(struct inode *dir, struct dentry *dentry, umode_t mode)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	int error;
 	struct inode *inode = minix_new_inode(dir, mode, &error);
 	if (inode) {
@@ -75,6 +79,7 @@ static int minix_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 static int minix_symlink(struct inode * dir, struct dentry *dentry,
 	  const char * symname)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	int err = -ENAMETOOLONG;
 	int i = strlen(symname)+1;
 	struct inode * inode;
@@ -104,6 +109,7 @@ out_fail:
 static int minix_link(struct dentry * old_dentry, struct inode * dir,
 	struct dentry *dentry)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	struct inode *inode = d_inode(old_dentry);
 
 	inode->i_ctime = current_time(inode);
@@ -114,6 +120,7 @@ static int minix_link(struct dentry * old_dentry, struct inode * dir,
 
 static int minix_mkdir(struct inode * dir, struct dentry *dentry, umode_t mode)
 {
+printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	struct inode * inode;
 	int err;
 
@@ -150,6 +157,7 @@ out_dir:
 
 static int minix_unlink(struct inode * dir, struct dentry *dentry)
 {
+	printk("Namei %s %s\n", __PRETTY_FUNCTION__, __LINE__);
 	int err = -ENOENT;
 	struct inode * inode = d_inode(dentry);
 	struct page * page;
