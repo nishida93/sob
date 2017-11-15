@@ -1,0 +1,4 @@
+Neste pacote existe um assistente de projeto, antes de tudo para ativa-lo é necessario dar permissão de execução ao codigo shell
+-Para isso é necessario entrar na pasta minix no terminal dar o comando: sudo chmod +x ajuda.sh
+-Para executar o script shell bastar dar ./ajuda.sh [argumento] para ter ajuda nos argumentos basta executar ./setup.sh
+

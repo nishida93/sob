@@ -1,0 +1,1 @@
+cmd_/home/pedro/Documents/sob/Projeto2/minix_mod_2/minix2.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/pedro/Documents/sob/Projeto2/minix_mod_2/minix2.ko /home/pedro/Documents/sob/Projeto2/minix_mod_2/minix2.o /home/pedro/Documents/sob/Projeto2/minix_mod_2/minix2.mod.o ;  true
